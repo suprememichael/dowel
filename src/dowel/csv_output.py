@@ -42,12 +42,27 @@ class CsvOutput(FileOutput):
                 self._writer.writeheader()
 
             if to_csv.keys() != self._fieldnames:
-                self._warn('Inconsistent TabularInput keys detected. '
-                           'CsvOutput keys: {}. '
-                           'TabularInput keys: {}. '
-                           'Did you change key sets after your first '
-                           'logger.log(TabularInput)?'.format(
-                               set(self._fieldnames), set(to_csv.keys())))
+                                
+                # update new field name
+                new_field = set(to_csv.keys())
+                self._fieldnames.update(new_field)
+
+                # read existing file and write back with new fieldname
+                # self._log_file contains: name, mode, encoding
+                # <_io.TextIOWrapper name='out.csv' mode='w' encoding='cp1252'>
+                with open(self._log_file.name, "r", newline="") as csvfileog:
+                    og_data = csv.DictReader(csvfileog)
+
+                    self._writer = csv.DictWriter(
+                    self._log_file,
+                    fieldnames=self._fieldnames,
+                    extrasaction='ignore')
+
+                    # overwrite the file from beginning
+                    self._log_file.seek(0)
+                    self._writer.writeheader()
+                    for row in og_data:
+                        self._writer.writerow(row)
 
             self._writer.writerow(to_csv)
 
