@@ -42,12 +42,28 @@ class CsvOutput(FileOutput):
                 self._writer.writeheader()
 
             if to_csv.keys() != self._fieldnames:
-                self._warn('Inconsistent TabularInput keys detected. '
-                           'CsvOutput keys: {}. '
-                           'TabularInput keys: {}. '
-                           'Did you change key sets after your first '
-                           'logger.log(TabularInput)?'.format(
-                               set(self._fieldnames), set(to_csv.keys())))
+                                
+                # update new field name
+                new_field = set(to_csv.keys())
+                self._fieldnames.update(new_field)
+
+                # read existing file and write back with new fieldname
+                # self._log_file contains: name, mode, encoding
+                # <_io.TextIOWrapper name='out.csv' mode='w' encoding='cp1252'>
+                with open(self._log_file.name, "r") as csvfileog:
+                    original_data = csv.DictReader(csvfileog)
+
+                    self._writer = csv.DictWriter(
+                    self._log_file,
+                    fieldnames=self._fieldnames,
+                    extrasaction='raise')
+                    self._log_file.seek(0)
+                    self._writer = self.csvwriter(self._log_file, self._fieldnames, 'ignore', True)
+
+                    # overwrite the file from beginning
+                    
+                    for row in original_data:
+                        self._writer.writerow(row)
 
             self._writer.writerow(to_csv)
 
@@ -55,6 +71,15 @@ class CsvOutput(FileOutput):
                 data.mark(k)
         else:
             raise ValueError('Unacceptable type.')
+
+    def csvwriter (self, filename, fieldnames,extrasaction,writeheader):
+        writer = csv.DictWriter(
+            filename,
+            fieldnames = fieldnames,
+            extrasaction = extrasaction)
+        if writeheader:
+            self._writer.writeheader()
+        return writer
 
     def _warn(self, msg):
         """Warns the user using warnings.warn.
