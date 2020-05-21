@@ -17,8 +17,8 @@ for i in range(4):
         tabular.record('new_data', i)
     if i > 1:
         tabular.record('brand_new_data', i+i)
-    if i > 2:
         tabular.record('brand_brand_new_data', i+1)
+
 
     logger.log(tabular)
 

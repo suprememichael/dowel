@@ -50,18 +50,19 @@ class CsvOutput(FileOutput):
                 # read existing file and write back with new fieldname
                 # self._log_file contains: name, mode, encoding
                 # <_io.TextIOWrapper name='out.csv' mode='w' encoding='cp1252'>
-                with open(self._log_file.name, "r", newline="") as csvfileog:
-                    og_data = csv.DictReader(csvfileog)
+                with open(self._log_file.name, "r") as csvfileog:
+                    original_data = csv.DictReader(csvfileog)
 
                     self._writer = csv.DictWriter(
                     self._log_file,
                     fieldnames=self._fieldnames,
-                    extrasaction='ignore')
+                    extrasaction='raise')
+                    self._log_file.seek(0)
+                    self._writer = self.csvwriter(self._log_file, self._fieldnames, 'ignore', True)
 
                     # overwrite the file from beginning
-                    self._log_file.seek(0)
-                    self._writer.writeheader()
-                    for row in og_data:
+                    
+                    for row in original_data:
                         self._writer.writerow(row)
 
             self._writer.writerow(to_csv)
@@ -70,6 +71,15 @@ class CsvOutput(FileOutput):
                 data.mark(k)
         else:
             raise ValueError('Unacceptable type.')
+
+    def csvwriter (self, filename, fieldnames,extrasaction,writeheader):
+        writer = csv.DictWriter(
+            filename,
+            fieldnames = fieldnames,
+            extrasaction = extrasaction)
+        if writeheader:
+            self._writer.writeheader()
+        return writer
 
     def _warn(self, msg):
         """Warns the user using warnings.warn.
